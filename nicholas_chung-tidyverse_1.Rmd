@@ -1,0 +1,107 @@
+---
+title: "tidyverse pt. 1"
+author: "Nicholas Chung"
+date: "12/08/2019"
+output: 
+  html_document:
+    code_folding: hide
+    highlight: pygments
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, message=FALSE}
+library(tidyverse)
+library(knitr)
+```
+
+# Assignment
+In this assignment, you’ll practice collaborating around a code project with GitHub.  You could consider our collective work as building out a book of examples on how to use TidyVerse functions.
+
+GitHub repository:  https://github.com/acatlin/FALL2019TIDYVERSE
+FiveThirtyEight.com datasets.
+Kaggle datasets. 
+
+You have two tasks:
+
+Create an Example.  Using one or more TidyVerse packages, and any dataset from fivethirtyeight.com or Kaggle, create a programming sample “vignette” that demonstrates how to use one or more of the capabilities of the selected TidyVerse package with your selected dataset. (25 points)
+Extend an Existing Example.  Using one of your classmate’s examples (as created above), extend his or her example with additional annotated code. (15 points)
+You should clone the provided repository.  Once you have code to submit, you should make a pull request on the shared repository.  Minimally, you should be submitted .Rmd files; ideally, you should also submit an .md file and update the README.md file with your example.
+
+# Dataset
+For this Tidyverse assignment, I've selected this Kaggle dataset: https://www.kaggle.com/akhilv11/border-crossing-entry-data
+
+```{r load_data}
+# load csv
+raw.df <- read.csv("Border_Crossing_Entry_Data.csv", header = TRUE, stringsAsFactors = FALSE)
+head(raw.df, 10)
+```
+
+# Method
+## explore data to formulate question
+```{r}
+# investigate dates
+raw.df$Date %>% n_distinct()
+
+# narrow scope of investigation to California
+ca <- raw.df %>% 
+  filter(State == "California") %>%
+  select(Port.Name, Measure, Value, Date)
+
+# visualize california border crossing count
+ggplot(ca, aes(x=Date, y=Value)) + 
+  geom_point() +
+  ggtitle("(n) border crossings, california") +
+  xlab("year") + ylab("count")
+
+# group border crossings by port of entry, measure, and border
+mx.border <- raw.df %>%
+  filter(Border == "US-Mexico Border") %>%
+  select(Port.Name, State, Border, Date, Measure, Value)
+
+# what are the different methods of entry?
+mx.border %>% 
+  distinct(Measure)
+```
+
+## use Tidyverse methods to frame approach to question: "How do different modes of port of entry access compare across US-Mexico border?"
+Tidyverse methods utlized:
+* filter
+* summarize
+```{r explore question}
+# summary of large non-rail vehicle-based entry
+big.wheeled <- c("Trucks", "Buses", "Truck Containers Empty", "Bus Passengers", "Truck Containers Full")
+mx.border %>%
+  filter(Measure %in% big.wheeled) %>%
+  select(Measure, Value) %>%
+  summarize(mean = mean(Value))
+
+# summary of small vehicle-based entry
+small.wheeled <- c("Personal Vehicles", "Personal Vehicle Passengers")
+mx.border %>%
+  filter(Measure %in% small.wheeled) %>%
+  select(Measure, Value) %>%
+  summarize(mean = mean(Value))
+
+# summary of train-based entry
+rail.wheeled <- c("Train Passengers", "Trains", "Rail Containers Full", "Rail Containers Empty")
+mx.border %>%
+  filter(Measure %in% rail.wheeled) %>%
+  select(Measure, Value) %>%
+  summarize(mean = mean(Value))
+
+# summary of pedestrain entry
+no.wheeled <- c("Pedestrians")
+mx.border %>%
+  filter(Measure %in% no.wheeled) %>%
+  select(Measure, Value) %>%
+  summarize(mean = mean(Value))
+```
+
+# Finding
+The above findings suggest that personal vehicles are the most prevalent mode of transportation at ports of entry along the US-Mexico border.

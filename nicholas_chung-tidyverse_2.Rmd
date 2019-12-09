@@ -1,0 +1,132 @@
+---
+title: "tidyverse pt. 1"
+author: "Nicholas Chung"
+date: "12/08/2019"
+output: 
+  html_document:
+    code_folding: hide
+    highlight: pygments
+    theme: flatly
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, message=FALSE}
+library(tidyverse)
+library(knitr)
+```
+
+# Assignment
+In this assignment, you’ll practice collaborating around a code project with GitHub.  You could consider our collective work as building out a book of examples on how to use TidyVerse functions.
+
+GitHub repository:  https://github.com/acatlin/FALL2019TIDYVERSE
+FiveThirtyEight.com datasets.
+Kaggle datasets. 
+
+You have two tasks:
+
+Create an Example.  Using one or more TidyVerse packages, and any dataset from fivethirtyeight.com or Kaggle, create a programming sample “vignette” that demonstrates how to use one or more of the capabilities of the selected TidyVerse package with your selected dataset. (25 points)
+Extend an Existing Example.  Using one of your classmate’s examples (as created above), extend his or her example with additional annotated code. (15 points)
+You should clone the provided repository.  Once you have code to submit, you should make a pull request on the shared repository.  Minimally, you should be submitted .Rmd files; ideally, you should also submit an .md file and update the README.md file with your example.
+
+# Extend Existing Example
+For this second component, I've chosen to extend ["trump_approval_ratings"](https://github.com/pnojai/FALL2019TIDYVERSE/blob/master/trump_approval_ratings.Rmd) by Donny Lofland
+
+# Method
+In the identified example, the methods focus on the demonstration of the dplyr:filter() and dplyr:gather() functions to show the difference in approval and disapproval amongst the subgroup "voters".
+
+Here, we will extend the user of dplyr:filter() to show the mean approval and disapproval for each of the various subgroups.
+
+### load data
+```{r}
+# function to load data
+load_cached_url <- function(filename, url) {
+  dir.create(file.path('.', 'data'), showWarnings = FALSE)
+  fqfn <- paste('./data', filename, sep = '/')
+
+  # Download the file and save it, if we don't have it yet.  
+  if(!file.exists(fqfn)) {
+    data <- read_csv(url)
+    write_csv(data, fqfn)
+  }
+
+  # Guess column specification.
+  fqfn_spec <- spec_csv(fqfn)
+  
+  # Identify date columns.
+  # Assumption: Column name ends with "date".
+  date_cols <- names(fqfn_spec$cols)[str_detect(names(fqfn_spec$cols),
+                                     pattern = "date$")]
+  
+  # Remove one of the date column names, in order to illustrate later the
+  # alternative of specifying datatype after reading, too.
+  date_cols <- date_cols[-1]
+
+  # Set specification explicitly for date columns.
+  for (column in date_cols) {
+    fqfn_spec$cols[[column]] <- col_date("%m/%d/%Y")  
+  }
+  
+  # Read file, setting datatypes for all columns.
+  data <- read_csv(fqfn, col_types = fqfn_spec)
+  
+  return(as_tibble(data))
+}
+```
+
+```{r read_csv1, eval=TRUE, message=FALSE}
+
+polls <- load_cached_url(
+  'trump-approval-ratings-polls.csv', 
+  'https://projects.fivethirtyeight.com/trump-approval-data/approval_polllist.csv'
+  )
+
+results <- load_cached_url(
+  'trump-approval-ratings-results.csv',
+  'https://projects.fivethirtyeight.com/trump-approval-data/approval_topline.csv')
+
+head(polls)
+head(results)
+```
+
+```{r}
+# confirm discrete subgroups
+results %>%
+  distinct(subgroup)
+
+# mean approval per subgroup
+results %>% 
+  filter(subgroup == "Adults") %>%
+  select(subgroup, approve_estimate) %>%
+  summarize(m.approve = mean(approve_estimate))
+
+results %>% 
+  filter(subgroup == "All polls") %>%
+  select(subgroup, approve_estimate) %>%
+  summarize(m.approve= mean(approve_estimate))
+
+results %>% 
+  filter(subgroup == "Voters") %>%
+  select(subgroup, approve_estimate) %>%
+  summarize(m.approve = mean(approve_estimate))
+
+# mean disapproval per subgroup
+results %>% 
+  filter(subgroup == "Adults") %>%
+  select(subgroup, disapprove_estimate) %>%
+  summarize(m.disapprove = mean(disapprove_estimate))
+
+results %>% 
+  filter(subgroup == "All polls") %>%
+  select(subgroup, disapprove_estimate) %>%
+  summarize(m.disapprove = mean(disapprove_estimate))
+
+results %>% 
+  filter(subgroup == "Voters") %>%
+  select(subgroup, disapprove_estimate) %>%
+  summarize(m.disapprove = mean(disapprove_estimate))
+```
